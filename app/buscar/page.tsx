@@ -13,6 +13,7 @@ type Row = {
   net: number | null;
   result_documents: {
     title: string;
+    published_at: string | null;
     classes: { name: string } | null;
     championships: { slug: string; name: string; year: number | null };
   };
@@ -27,10 +28,20 @@ async function Content({ searchParams }: { searchParams: Promise<Search> }) {
   if (q.length >= 3) {
     const { data } = await supabase
       .from('entries')
-      .select('position,sail_number,crew,club,total,net,result_documents!inner(title,classes(name),championships!inner(slug,name,year))')
+      .select('position,sail_number,crew,club,total,net,result_documents!inner(title,published_at,classes(name),championships!inner(slug,name,year))')
       .ilike('crew', `%${q}%`)
-      .limit(100);
-    rows = (data ?? []) as unknown as Row[];
+      .limit(500);
+    // A championship publishes many versions of the same standings (provisional, per day, v2, v3...).
+    // Keep only the latest version per person and championship.
+    const latest = new Map<string, Row>();
+    for (const r of (data ?? []) as unknown as Row[]) {
+      const key = [r.result_documents.championships.slug, (r.crew ?? '').toLowerCase(), r.sail_number ?? ''].join('|');
+      const cur = latest.get(key);
+      if (!cur || (r.result_documents.published_at ?? '') > (cur.result_documents.published_at ?? '')) latest.set(key, r);
+    }
+    rows = [...latest.values()]
+      .sort((a, b) => (b.result_documents.published_at ?? '').localeCompare(a.result_documents.published_at ?? ''))
+      .slice(0, 100);
   }
 
   return (
