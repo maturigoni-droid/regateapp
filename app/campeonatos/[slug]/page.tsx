@@ -43,7 +43,7 @@ async function Content({ params }: { params: Promise<{ slug: string }> }) {
 
   const { data: docs } = await supabase
     .from('result_documents')
-    .select('id,title,source_url,storage_path,published_at,classes(name)')
+    .select('id,title,storage_path,published_at,classes(name)')
     .eq('championship_id', c.id)
     .order('published_at', { ascending: false });
 
@@ -64,12 +64,6 @@ async function Content({ params }: { params: Promise<{ slug: string }> }) {
       <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{c.name}</h1>
       <p className="mt-2 text-muted">
         {c.club} · {formatDates(c.start_date, c.end_date)} {c.year}
-        {c.source_url && (
-          <>
-            {' · '}
-            <a href={c.source_url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Ver en Viramos</a>
-          </>
-        )}
       </p>
 
       {groups.size === 0 && <p className="mt-10 text-muted">Todavía no hay resultados publicados.</p>}
@@ -84,9 +78,11 @@ async function Content({ params }: { params: Promise<{ slug: string }> }) {
                 <li key={d.id} className="border-b border-line last:border-b-0">
                   <div className="flex items-center justify-between gap-4 px-5 py-3.5">
                     <span className="font-medium tracking-tight">{d.title}</span>
-                    <a href={documentUrl(d)} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm text-accent hover:underline">
-                      Original ↗
-                    </a>
+                    {documentUrl(d) && (
+                      <a href={documentUrl(d)!} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm text-accent hover:underline">
+                        Ver PDF ↗
+                      </a>
+                    )}
                   </div>
                   {rows.length > 0 && (
                     <details className="group border-t border-line">

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { crewKeys, queryTokens } from '@/lib/names';
 
 type Search = { [key: string]: string | string[] | undefined };
 
@@ -61,9 +62,20 @@ async function Content({ searchParams }: { searchParams: Promise<Search> }) {
       {q.length >= 3 && <p className="mb-3 mt-8 text-sm text-muted">{rows.length} resultados</p>}
       {rows.length > 0 && (
         <ul className="overflow-hidden rounded-xl border border-line bg-surface">
-          {rows.map((r, i) => (
+          {rows.map((r, i) => {
+            const keys = crewKeys(r.crew);
+            const tokens = queryTokens(q);
+            const key = keys.find((k) => tokens.every((t) => k.split('-').some((w) => w.startsWith(t)))) ?? keys[0];
+            return (
             <li key={i} className="border-b border-line px-5 py-4 last:border-b-0">
-              <div className="font-medium tracking-tight">{r.crew}</div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-medium tracking-tight">{r.crew}</span>
+                {key && (
+                  <Link href={`/timoneles/${key}`} className="shrink-0 text-sm text-accent hover:underline">
+                    Ver progresión →
+                  </Link>
+                )}
+              </div>
               <div className="mt-0.5 text-sm tabular-nums text-muted">
                 Puesto {r.position} · Vela {r.sail_number} · {r.club} · Total {r.net ?? r.total}
               </div>
@@ -71,7 +83,8 @@ async function Content({ searchParams }: { searchParams: Promise<Search> }) {
                 {r.result_documents.championships.name} ({r.result_documents.classes?.name ?? r.result_documents.title})
               </Link>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </main>

@@ -1,6 +1,7 @@
 import { config } from 'dotenv';
 import { readFileSync } from 'node:fs';
 import * as cheerio from 'cheerio';
+import { crewKeys } from '../lib/names';
 import { createClient } from '@supabase/supabase-js';
 
 config({ path: '.env.local' });
@@ -82,7 +83,7 @@ async function main() {
     }
     const del = await supabase.from('entries').delete().eq('document_id', d.id);
     if (del.error) throw new Error(del.error.message);
-    const ins = await supabase.from('entries').insert(entries.map((e) => ({ document_id: d.id, ...e })));
+    const ins = await supabase.from('entries').insert(entries.map((e) => ({ document_id: d.id, ...e, crew_keys: crewKeys(e.crew) })));
     if (ins.error) throw new Error(ins.error.message);
     parsed++;
     total += entries.length;
