@@ -39,7 +39,7 @@ async function Content({ searchParams }: { searchParams: Promise<Search> }) {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8">
       <h1 className="text-3xl font-bold">RegateApp</h1>
-      <p className="mt-1 text-neutral-600">Resultados históricos de regatas de Argentina, de todas las clases.</p>
+      <p className="mt-1 text-neutral-600">Resultados históricos de regatas de Argentina, de todas las clases. <Link href="/buscar" className="text-sky-700 hover:underline">Buscar un timonel</Link></p>
 
       <form className="mt-6 flex flex-wrap gap-3">
         <input name="q" defaultValue={q} placeholder="Buscar campeonato" className="min-w-48 flex-1 rounded border border-neutral-300 px-3 py-2" />

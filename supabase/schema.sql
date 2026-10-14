@@ -60,3 +60,6 @@ create policy "public read" on classes for select using (true);
 create policy "public read" on championship_classes for select using (true);
 create policy "public read" on result_documents for select using (true);
 create policy "public read" on entries for select using (true);
+
+-- Added for parsed standings
+alter table entries add column if not exists club text, add column if not exists raw jsonb;
