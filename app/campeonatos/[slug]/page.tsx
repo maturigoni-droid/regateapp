@@ -33,60 +33,66 @@ async function Content({ params }: { params: Promise<{ slug: string }> }) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8">
-      <Link href="/" className="text-sm text-sky-700 hover:underline">← Todos los campeonatos</Link>
-      <h1 className="mt-3 text-2xl font-bold">{c.name}</h1>
-      <p className="text-neutral-600">{c.club} · {formatDates(c.start_date, c.end_date)} {c.year}</p>
-      {c.source_url && (
-        <a href={c.source_url} target="_blank" rel="noopener noreferrer" className="text-sm text-sky-700 hover:underline">
-          Ver en Viramos
-        </a>
-      )}
+    <main className="mx-auto w-full max-w-4xl px-5 pb-16 pt-10">
+      <Link href="/" className="text-sm text-muted transition-colors hover:text-ink">← Campeonatos</Link>
+      <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{c.name}</h1>
+      <p className="mt-2 text-muted">
+        {c.club} · {formatDates(c.start_date, c.end_date)} {c.year}
+        {c.source_url && (
+          <>
+            {' · '}
+            <a href={c.source_url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Ver en Viramos</a>
+          </>
+        )}
+      </p>
 
-      {groups.size === 0 && <p className="mt-6 text-neutral-500">Todavía no hay resultados publicados.</p>}
+      {groups.size === 0 && <p className="mt-10 text-muted">Todavía no hay resultados publicados.</p>}
       {[...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, items]) => (
-        <section key={name} className="mt-6">
-          <h2 className="mb-2 text-lg font-semibold">{name}</h2>
-          <ul className="divide-y divide-neutral-200 rounded border border-neutral-200">
+        <section key={name} className="mt-10">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted">{name}</h2>
+          <ul className="overflow-hidden rounded-xl border border-line bg-surface">
             {items.map((d) => {
               const rows = entriesByDoc.get(d.id) ?? [];
               const raceKeys = rows.length ? Object.keys(rows[0].race_scores ?? {}) : [];
               return (
-                <li key={d.id}>
-                  <div className="flex justify-between gap-3 px-4 py-2">
-                    <span>{d.title}</span>
-                    <a href={documentUrl(d)} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm text-sky-700 hover:underline">
+                <li key={d.id} className="border-b border-line last:border-b-0">
+                  <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+                    <span className="font-medium tracking-tight">{d.title}</span>
+                    <a href={documentUrl(d)} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm text-accent hover:underline">
                       Original ↗
                     </a>
                   </div>
                   {rows.length > 0 && (
-                    <details className="border-t border-neutral-100 px-4 py-2">
-                      <summary className="cursor-pointer text-sm text-neutral-600">Ver posiciones ({rows.length})</summary>
-                      <div className="mt-2 overflow-x-auto">
-                        <table className="w-full text-left text-sm">
+                    <details className="group border-t border-line">
+                      <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-2.5 text-sm text-muted transition-colors hover:text-ink [&::-webkit-details-marker]:hidden">
+                        <span className="inline-block transition-transform group-open:rotate-90">›</span>
+                        Posiciones ({rows.length})
+                      </summary>
+                      <div className="overflow-x-auto px-5 pb-4">
+                        <table className="w-full min-w-[40rem] text-left text-sm tabular-nums">
                           <thead>
-                            <tr className="border-b border-neutral-200 text-neutral-500">
-                              <th className="py-1 pr-2">Pos</th>
-                              <th className="pr-2">Vela</th>
-                              <th className="pr-2">Timonel / tripulación</th>
-                              <th className="pr-2">Club</th>
+                            <tr className="border-b border-line text-xs uppercase tracking-wider text-muted">
+                              <th className="py-2 pr-3 font-medium">Pos</th>
+                              <th className="pr-3 font-medium">Vela</th>
+                              <th className="pr-3 font-medium">Timonel / tripulación</th>
+                              <th className="pr-3 font-medium">Club</th>
                               {raceKeys.map((k) => (
-                                <th key={k} className="pr-2 text-right">R{k.replace(/^r/i, '')}</th>
+                                <th key={k} className="pr-3 text-right font-medium">R{k.replace(/^r/i, '')}</th>
                               ))}
-                              <th className="text-right">Total</th>
+                              <th className="text-right font-medium">Total</th>
                             </tr>
                           </thead>
                           <tbody>
                             {rows.map((r, i) => (
-                              <tr key={i} className="border-b border-neutral-100">
-                                <td className="py-1 pr-2">{r.position}</td>
-                                <td className="pr-2">{r.sail_number}</td>
-                                <td className="pr-2">{r.crew}</td>
-                                <td className="pr-2">{r.club}</td>
+                              <tr key={i} className="border-b border-line/60 last:border-b-0">
+                                <td className="py-2 pr-3 font-medium">{r.position}</td>
+                                <td className="pr-3 text-muted">{r.sail_number}</td>
+                                <td className="pr-3">{r.crew}</td>
+                                <td className="pr-3 text-muted">{r.club}</td>
                                 {raceKeys.map((k) => (
-                                  <td key={k} className="pr-2 text-right">{(r.race_scores as Record<string, string>)?.[k]}</td>
+                                  <td key={k} className="pr-3 text-right text-muted">{(r.race_scores as Record<string, string>)?.[k]}</td>
                                 ))}
-                                <td className="text-right font-medium">{r.net ?? r.total}</td>
+                                <td className="text-right font-semibold">{r.net ?? r.total}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -106,7 +112,7 @@ async function Content({ params }: { params: Promise<{ slug: string }> }) {
 
 export default function ChampionshipPage(props: PageProps<'/campeonatos/[slug]'>) {
   return (
-    <Suspense fallback={<main className="mx-auto w-full max-w-3xl px-4 py-8 text-neutral-500">Cargando…</main>}>
+    <Suspense fallback={<main className="mx-auto w-full max-w-4xl px-5 py-10 text-muted">Cargando…</main>}>
       <Content params={props.params} />
     </Suspense>
   );

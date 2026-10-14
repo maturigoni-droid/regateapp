@@ -5,6 +5,9 @@ import { supabase, formatDates, type Championship } from '@/lib/supabase';
 type Search = { [key: string]: string | string[] | undefined };
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? '';
 
+const field =
+  'h-10 rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-accent';
+
 async function Content({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const year = one(sp.year);
@@ -37,47 +40,59 @@ async function Content({ searchParams }: { searchParams: Promise<Search> }) {
   })[];
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8">
-      <h1 className="text-3xl font-bold">RegateApp</h1>
-      <p className="mt-1 text-neutral-600">Resultados históricos de regatas de Argentina, de todas las clases. <Link href="/buscar" className="text-sky-700 hover:underline">Buscar un timonel</Link></p>
+    <main className="mx-auto w-full max-w-5xl px-5">
+      <section className="pb-8 pt-14">
+        <h1 className="max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">Resultados de regatas argentinas.</h1>
+        <p className="mt-4 max-w-xl text-lg text-muted">Todas las clases, todos los campeonatos, en un solo lugar.</p>
+      </section>
 
-      <form className="mt-6 flex flex-wrap gap-3">
-        <input name="q" defaultValue={q} placeholder="Buscar campeonato" className="min-w-48 flex-1 rounded border border-neutral-300 px-3 py-2" />
-        <select name="year" defaultValue={year} className="rounded border border-neutral-300 px-3 py-2">
+      <form className="flex flex-wrap gap-2.5">
+        <input name="q" defaultValue={q} placeholder="Buscar campeonato" className={`${field} min-w-52 flex-1`} />
+        <select name="year" defaultValue={year} className={field}>
           <option value="">Todos los años</option>
           {yearOptions.map((y) => (
             <option key={y} value={y!}>{y}</option>
           ))}
         </select>
-        <select name="class" defaultValue={cls} className="rounded border border-neutral-300 px-3 py-2">
+        <select name="class" defaultValue={cls} className={field}>
           <option value="">Todas las clases</option>
           {(classes ?? []).map((c) => (
             <option key={c.id} value={c.name}>{c.name}</option>
           ))}
         </select>
-        <button className="rounded bg-sky-700 px-4 py-2 font-medium text-white hover:bg-sky-800">Filtrar</button>
+        <button className="h-10 rounded-lg bg-ink px-5 text-sm font-medium text-bg transition-opacity hover:opacity-85">Filtrar</button>
       </form>
 
-      <p className="mt-6 text-sm text-neutral-500">{rows.length} campeonatos</p>
-      <ul className="mt-2 divide-y divide-neutral-200 rounded border border-neutral-200">
+      <p className="mb-3 mt-8 text-sm text-muted">{rows.length} campeonatos</p>
+      <ul className="mb-16 overflow-hidden rounded-xl border border-line bg-surface">
         {rows.map((c) => {
           const names = [...new Set(c.championship_classes.map((x) => x.classes?.name).filter(Boolean))];
+          const count = c.result_documents[0]?.count ?? 0;
           return (
-            <li key={c.id}>
-              <Link href={`/campeonatos/${c.slug}`} className="block px-4 py-3 hover:bg-neutral-50">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-medium">{c.name}</span>
-                  <span className="text-sm text-neutral-500">{formatDates(c.start_date, c.end_date)} {c.year}</span>
+            <li key={c.id} className="border-b border-line last:border-b-0">
+              <Link href={`/campeonatos/${c.slug}`} className="group block px-5 py-4 transition-colors hover:bg-accent-soft">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <span className="font-medium tracking-tight group-hover:text-accent">{c.name}</span>
+                  <span className="text-sm tabular-nums text-muted">
+                    {formatDates(c.start_date, c.end_date)} {c.year}
+                  </span>
                 </div>
-                <div className="text-sm text-neutral-600">
-                  {c.club} · {c.result_documents[0]?.count ?? 0} resultados
+                <div className="mt-0.5 text-sm text-muted">
+                  {c.club} · {count} {count === 1 ? 'resultado' : 'resultados'}
                 </div>
-                {names.length > 0 && <div className="mt-1 text-xs text-neutral-500">{names.join(' · ')}</div>}
+                {names.length > 0 && (
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {names.slice(0, 8).map((n) => (
+                      <span key={n} className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs text-accent">{n}</span>
+                    ))}
+                    {names.length > 8 && <span className="px-1 text-xs text-muted">+{names.length - 8}</span>}
+                  </div>
+                )}
               </Link>
             </li>
           );
         })}
-        {rows.length === 0 && <li className="px-4 py-6 text-neutral-500">Sin resultados para ese filtro.</li>}
+        {rows.length === 0 && <li className="px-5 py-10 text-center text-muted">Sin resultados para ese filtro.</li>}
       </ul>
     </main>
   );
@@ -85,7 +100,7 @@ async function Content({ searchParams }: { searchParams: Promise<Search> }) {
 
 export default function Home({ searchParams }: { searchParams: Promise<Search> }) {
   return (
-    <Suspense fallback={<main className="mx-auto w-full max-w-5xl px-4 py-8 text-neutral-500">Cargando…</main>}>
+    <Suspense fallback={<main className="mx-auto w-full max-w-5xl px-5 py-14 text-muted">Cargando…</main>}>
       <Content searchParams={searchParams} />
     </Suspense>
   );
