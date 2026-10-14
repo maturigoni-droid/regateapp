@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "scrape": "tsx scripts/scrape.ts",
+    "upload": "tsx scripts/upload.ts",
+    "mirror": "tsx scripts/mirror-pdfs.ts",
+    "download": "tsx scripts/download.ts",
+    "parse": "tsx scripts/parse-html.ts",
+    "sync": "npm run scrape && npm run upload && npm run mirror && npm run download && npm run parse"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

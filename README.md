@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RegateApp
 
-## Getting Started
+Resultados históricos de regatas de Argentina, de todas las clases. Los datos salen de [viramos.com](https://viramos.com/), se guardan en Supabase y se muestran con Next.js.
 
-First, run the development server:
+## Desarrollo
 
 ```bash
+npm install
+cp .env.example .env.local   # completar las claves de Supabase
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local` nunca se sube al repo. `SUPABASE_SERVICE_ROLE_KEY` es solo para los scripts locales; no la cargues en Vercel.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Actualizar los datos
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run sync
+```
 
-## Learn More
+Corre en orden, y se puede repetir sin duplicar datos:
 
-To learn more about Next.js, take a look at the following resources:
+| Paso | Script | Qué hace |
+|---|---|---|
+| 1 | `npm run scrape` | Baja campeonatos y resultados de viramos a `data/` |
+| 2 | `npm run upload` | Filtra los clubes argentinos y los carga en Supabase |
+| 3 | `npm run mirror` | Copia los documentos nuevos al bucket `results` |
+| 4 | `npm run download` | Trae los archivos copiados a `data/files/` |
+| 5 | `npm run parse` | Lee las tablas HTML y las guarda en `entries` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Los clubes que cuentan como Argentina están en `scripts/upload.ts` (`ARGENTINE_CLUBS`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Base de datos
 
-## Deploy on Vercel
+El esquema está en `supabase/schema.sql`. Se ejecuta una vez en el editor SQL de Supabase.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Cobertura de posiciones
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Solo se leen las tablas HTML. Los PDFs quedan enlazados al original, sin posiciones estructuradas.
