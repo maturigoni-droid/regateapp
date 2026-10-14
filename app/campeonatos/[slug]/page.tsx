@@ -3,6 +3,39 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { supabase, formatDates, documentUrl } from '@/lib/supabase';
 
+type EntryRow = {
+  document_id: string;
+  position: number | null;
+  sail_number: string | null;
+  crew: string | null;
+  club: string | null;
+  boat: string | null;
+  race_scores: Record<string, string> | null;
+  total: number | null;
+  net: number | null;
+};
+
+const PAGE = 1000;
+
+// Supabase returns at most 1000 rows per request, so page through the results.
+async function fetchEntries(ids: string[]): Promise<EntryRow[]> {
+  const rows: EntryRow[] = [];
+  if (ids.length === 0) return rows;
+  for (let from = 0; ; from += PAGE) {
+    const { data } = await supabase
+      .from('entries')
+      .select('document_id,position,sail_number,crew,club,boat,race_scores,total,net')
+      .in('document_id', ids)
+      .order('document_id')
+      .order('position')
+      .order('id')
+      .range(from, from + PAGE - 1);
+    rows.push(...((data ?? []) as EntryRow[]));
+    if (!data || data.length < PAGE) break;
+  }
+  return rows;
+}
+
 async function Content({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { data: c } = await supabase.from('championships').select('*').eq('slug', slug).maybeSingle();
@@ -15,14 +48,7 @@ async function Content({ params }: { params: Promise<{ slug: string }> }) {
     .order('published_at', { ascending: false });
 
   const ids = (docs ?? []).map((d) => d.id);
-  const { data: entryRows } = ids.length
-    ? await supabase
-        .from('entries')
-        .select('document_id,position,sail_number,crew,club,boat,race_scores,total,net')
-        .in('document_id', ids)
-        .order('position')
-        .limit(5000)
-    : { data: [] };
+  const entryRows = await fetchEntries(ids);
   const entriesByDoc = new Map<string, NonNullable<typeof entryRows>>();
   for (const e of entryRows ?? []) entriesByDoc.set(e.document_id, [...(entriesByDoc.get(e.document_id) ?? []), e]);
 
@@ -87,7 +113,7 @@ async function Content({ params }: { params: Promise<{ slug: string }> }) {
                               <tr key={i} className="border-b border-line/60 last:border-b-0">
                                 <td className="py-2 pr-3 font-medium">{r.position}</td>
                                 <td className="pr-3 text-muted">{r.sail_number}</td>
-                                <td className="pr-3">{r.crew}</td>
+                                <td className="pr-3">{r.boat ? <><span className="font-medium">{r.boat}</span>{r.crew ? <span className="text-muted"> · {r.crew}</span> : null}</> : r.crew}</td>
                                 <td className="pr-3 text-muted">{r.club}</td>
                                 {raceKeys.map((k) => (
                                   <td key={k} className="pr-3 text-right text-muted">{(r.race_scores as Record<string, string>)?.[k]}</td>
