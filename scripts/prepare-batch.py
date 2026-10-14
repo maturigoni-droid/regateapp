@@ -17,8 +17,12 @@ pymupdf.TOOLS.mupdf_display_errors(False)
 
 name, count = sys.argv[1], int(sys.argv[2])
 seed = int(sys.argv[3]) if len(sys.argv) > 3 else 1
+# Optional: only documents whose championship slug starts with this prefix (e.g. "cuba-metropolitano").
+prefix = sys.argv[4] if len(sys.argv) > 4 else ''
 
 docs = json.load(open('data/docs.json', encoding='utf8'))
+if prefix:
+    docs = [d for d in docs if ((d.get('championships') or {}).get('slug') or '').startswith(prefix)]
 used = set()
 if os.path.isdir('data/batches'):
     for b in os.listdir('data/batches'):
@@ -37,12 +41,15 @@ def kind(d):
 random.Random(seed).shuffle(docs)
 picked = []
 want = {'text': count // 2, 'visual': count - count // 2}
+if prefix:  # a targeted batch takes whatever the championship has, regardless of the text/visual mix
+    want = {'text': count, 'visual': count}
 got = {'text': 0, 'visual': 0}
 for d in docs:
     if d['id'] in used or d['id'] in done:
         continue
     k, pages = kind(d)
-    if pages > 3 or got[k] >= want[k]:
+    # Page cap only for image batches (each page is an image to read); text of long documents is cheap.
+    if (k == 'visual' and pages > 3) or got[k] >= want[k]:
         continue
     got[k] += 1
     entry = {

@@ -36,11 +36,16 @@ async function main() {
 
   let done = 0, failed = 0, next = 0;
   await Promise.all(
-    Array.from({ length: 6 }, async () => {
+    // Few parallel downloads: some source sites sit behind rate limiting.
+    Array.from({ length: 3 }, async () => {
       while (next < docs.length) {
         const d = docs[next++];
         try {
-          const res = await fetch(d.source_url);
+          let res = await fetch(d.source_url);
+          for (let attempt = 1; !res.ok && attempt <= 3; attempt++) {
+            await new Promise((r) => setTimeout(r, 1500 * attempt));
+            res = await fetch(d.source_url);
+          }
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const buf = Buffer.from(await res.arrayBuffer());
           const { ext, type } = sniff(buf, (res.headers.get('content-type') ?? '').split(';')[0]);
