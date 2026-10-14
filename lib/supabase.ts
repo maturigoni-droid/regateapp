@@ -22,3 +22,10 @@ export function formatDates(start: string | null, end: string | null) {
   if (!start) return '';
   return end && end !== start ? `${fmt(start)} – ${fmt(end)}` : fmt(start);
 }
+
+export function documentUrl(d: { source_url: string; storage_path: string | null }) {
+  // Supabase serves HTML as text/plain, so those keep pointing at the original.
+  return d.storage_path && !d.storage_path.endsWith('.html')
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/results/${d.storage_path}`
+    : d.source_url;
+}

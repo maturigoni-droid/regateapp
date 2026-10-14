@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { supabase, formatDates } from '@/lib/supabase';
+import { supabase, formatDates, documentUrl } from '@/lib/supabase';
 
 async function Content({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -10,7 +10,7 @@ async function Content({ params }: { params: Promise<{ slug: string }> }) {
 
   const { data: docs } = await supabase
     .from('result_documents')
-    .select('id,title,source_url,published_at,classes(name)')
+    .select('id,title,source_url,storage_path,published_at,classes(name)')
     .eq('championship_id', c.id)
     .order('published_at', { ascending: false });
 
@@ -38,7 +38,7 @@ async function Content({ params }: { params: Promise<{ slug: string }> }) {
           <ul className="divide-y divide-neutral-200 rounded border border-neutral-200">
             {items.map((d) => (
               <li key={d.id}>
-                <a href={d.source_url} target="_blank" rel="noopener noreferrer" className="flex justify-between gap-3 px-4 py-2 hover:bg-neutral-50">
+                <a href={documentUrl(d)} target="_blank" rel="noopener noreferrer" className="flex justify-between gap-3 px-4 py-2 hover:bg-neutral-50">
                   <span>{d.title}</span>
                   <span className="shrink-0 text-sm text-neutral-500">PDF ↗</span>
                 </a>
