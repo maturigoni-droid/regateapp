@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { crewKeys, queryTokens } from '@/lib/names';
+import { crewKeys, displayNameFor, queryTokens } from '@/lib/names';
 
 type Search = { [key: string]: string | string[] | undefined };
 
@@ -10,39 +10,62 @@ type Row = {
   sail_number: string | null;
   crew: string | null;
   club: string | null;
-  total: number | null;
-  net: number | null;
   result_documents: {
     title: string;
     published_at: string | null;
     classes: { name: string } | null;
-    championships: { slug: string; name: string; year: number | null };
+    championships: { slug: string; name: string; year: number | null; start_date: string | null };
   };
 };
+
+type Person = { key: string; rows: Row[] };
+
+const titleCase = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/(^|[\s'-])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase());
+
+const when = (r: Row) => r.result_documents.championships.start_date ?? r.result_documents.published_at ?? '';
 
 async function Content({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const raw = sp.q;
   const q = ((Array.isArray(raw) ? raw[0] : raw) ?? '').trim();
 
-  let rows: Row[] = [];
+  let people: { key: string; name: string; championships: number; clubs: string[]; latest: Row }[] = [];
   if (q.length >= 3) {
     const { data } = await supabase
       .from('entries')
-      .select('position,sail_number,crew,club,total,net,result_documents!inner(title,published_at,classes(name),championships!inner(slug,name,year))')
+      .select('position,sail_number,crew,club,result_documents!inner(title,published_at,classes(name),championships!inner(slug,name,year,start_date))')
       .ilike('crew', `%${q}%`)
-      .limit(500);
-    // A championship publishes many versions of the same standings (provisional, per day, v2, v3...).
-    // Keep only the latest version per person and championship.
-    const latest = new Map<string, Row>();
+      .limit(1000);
+
+    // One entry per person (not per sail number or championship): group the rows by person key.
+    const tokens = queryTokens(q);
+    const byKey = new Map<string, Person>();
     for (const r of (data ?? []) as unknown as Row[]) {
-      const key = [r.result_documents.championships.slug, (r.crew ?? '').toLowerCase(), r.sail_number ?? ''].join('|');
-      const cur = latest.get(key);
-      if (!cur || (r.result_documents.published_at ?? '') > (cur.result_documents.published_at ?? '')) latest.set(key, r);
+      const key = crewKeys(r.crew).find((k) => tokens.every((t) => k.split('-').some((w) => w.startsWith(t))));
+      if (!key) continue;
+      const p = byKey.get(key) ?? { key, rows: [] };
+      p.rows.push(r);
+      byKey.set(key, p);
     }
-    rows = [...latest.values()]
-      .sort((a, b) => (b.result_documents.published_at ?? '').localeCompare(a.result_documents.published_at ?? ''))
-      .slice(0, 100);
+
+    people = [...byKey.values()]
+      .map((p) => {
+        const latest = [...p.rows].sort((a, b) => when(b).localeCompare(when(a)))[0];
+        const clubCount = new Map<string, number>();
+        for (const r of p.rows) if (r.club) clubCount.set(r.club, (clubCount.get(r.club) ?? 0) + 1);
+        return {
+          key: p.key,
+          name: titleCase(displayNameFor(latest.crew, p.key) ?? p.key.split('-').join(' ')),
+          championships: new Set(p.rows.map((r) => r.result_documents.championships.slug)).size,
+          clubs: [...clubCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([c]) => c),
+          latest,
+        };
+      })
+      .sort((a, b) => b.championships - a.championships || when(b.latest).localeCompare(when(a.latest)))
+      .slice(0, 50);
   }
 
   return (
@@ -59,30 +82,27 @@ async function Content({ searchParams }: { searchParams: Promise<Search> }) {
         <button className="h-10 rounded-lg bg-ink px-5 text-sm font-medium text-bg transition-opacity hover:opacity-85">Buscar</button>
       </form>
       <p className="mt-2 text-xs text-muted">Incluye solo las tablas que pudimos leer; el resto está como PDF en cada campeonato.</p>
-      {q.length >= 3 && <p className="mb-3 mt-8 text-sm text-muted">{rows.length} resultados</p>}
-      {rows.length > 0 && (
+      {q.length >= 3 && <p className="mb-3 mt-8 text-sm text-muted">{people.length} {people.length === 1 ? 'persona' : 'personas'}</p>}
+      {people.length > 0 && (
         <ul className="overflow-hidden rounded-xl border border-line bg-surface">
-          {rows.map((r, i) => {
-            const keys = crewKeys(r.crew);
-            const tokens = queryTokens(q);
-            const key = keys.find((k) => tokens.every((t) => k.split('-').some((w) => w.startsWith(t)))) ?? keys[0];
+          {people.map((p) => {
+            const c = p.latest.result_documents.championships;
             return (
-            <li key={i} className="border-b border-line px-5 py-4 last:border-b-0">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-medium tracking-tight">{r.crew}</span>
-                {key && (
-                  <Link href={`/timoneles/${key}`} className="shrink-0 text-sm text-accent hover:underline">
-                    Ver progresión →
-                  </Link>
-                )}
-              </div>
-              <div className="mt-0.5 text-sm tabular-nums text-muted">
-                Puesto {r.position} · Vela {r.sail_number} · {r.club} · Total {r.net ?? r.total}
-              </div>
-              <Link href={`/campeonatos/${r.result_documents.championships.slug}`} className="mt-1.5 inline-block text-sm text-accent hover:underline">
-                {r.result_documents.championships.name} ({r.result_documents.classes?.name ?? r.result_documents.title})
-              </Link>
-            </li>
+              <li key={p.key} className="border-b border-line last:border-b-0">
+                <Link href={`/timoneles/${p.key}`} className="group block px-5 py-4 transition-colors hover:bg-accent-soft">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-medium tracking-tight group-hover:text-accent">{p.name}</span>
+                    <span className="shrink-0 text-sm text-accent">Ver progresión →</span>
+                  </div>
+                  <div className="mt-0.5 text-sm tabular-nums text-muted">
+                    {p.championships} {p.championships === 1 ? 'campeonato' : 'campeonatos'}
+                    {p.clubs.length > 0 && ` · ${p.clubs.join(' / ')}`}
+                  </div>
+                  <div className="mt-1 text-sm text-muted">
+                    Último: {c.name} ({p.latest.result_documents.classes?.name ?? '—'}), puesto {p.latest.position}
+                  </div>
+                </Link>
+              </li>
             );
           })}
         </ul>

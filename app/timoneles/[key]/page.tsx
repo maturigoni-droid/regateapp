@@ -41,10 +41,11 @@ async function Content({ params }: { params: Promise<{ key: string }> }) {
   const rows = (data ?? []) as unknown as Row[];
   if (rows.length === 0) notFound();
 
-  // A championship publishes many versions of the same standings; keep the latest per sail number.
+  // A championship publishes many versions of the same standings; keep the latest per class.
+  // Not per sail number: a sailor's sail number can change between versions and regattas.
   const latest = new Map<string, Row>();
   for (const r of rows) {
-    const k = [r.result_documents.championships.slug, r.sail_number ?? r.crew ?? ''].join('|');
+    const k = [r.result_documents.championships.slug, r.result_documents.classes?.name ?? ''].join('|');
     const cur = latest.get(k);
     if (!cur || (r.result_documents.published_at ?? '') > (cur.result_documents.published_at ?? '')) latest.set(k, r);
   }
