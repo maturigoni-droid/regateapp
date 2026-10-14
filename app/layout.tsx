@@ -34,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Link>
             <nav className="flex items-center gap-5 text-sm text-muted">
               <Link href="/" className="transition-colors hover:text-ink">Campeonatos</Link>
-              <Link href="/buscar" className="transition-colors hover:text-ink">Buscar timonel</Link>
+              <Link href="/buscar" className="transition-colors hover:text-ink">Buscar</Link>
             </nav>
           </div>
         </header>

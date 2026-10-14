@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 import { readdirSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
-import { crewKeys } from '../lib/names';
+import { boatKey, crewKeys } from '../lib/names';
 
 config({ path: '.env.local' });
 
@@ -84,7 +84,7 @@ async function main() {
     if (apply) {
       const del = await supabase.from('entries').delete().eq('document_id', id);
       if (del.error) throw new Error(del.error.message);
-      const ins = await supabase.from('entries').insert(good.map((r) => ({ document_id: id, ...r, crew_keys: crewKeys(r.crew) })));
+      const ins = await supabase.from('entries').insert(good.map((r) => ({ document_id: id, ...r, crew_keys: crewKeys(r.crew), boat_key: boatKey(r.boat) })));
       if (ins.error) throw new Error(ins.error.message);
     }
     loaded++;

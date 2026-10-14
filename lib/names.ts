@@ -43,3 +43,18 @@ export function queryTokens(q: string): string[] {
     .split(/[^a-z0-9]+/)
     .filter(Boolean);
 }
+
+/** Stable key for a boat name ("Pura Sangre" -> "pura-sangre"), ignoring case, accents and punctuation. */
+export function boatKey(boat: string | null | undefined): string | null {
+  if (!boat) return null;
+  const tokens = boat
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const key = tokens.join('-');
+  return key.length >= 3 ? key : null;
+}
